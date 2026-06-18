@@ -13,7 +13,7 @@ id2label = {
 tests = [
     "Congratulations! You have won ₹5000. Click here to claim your reward.",
     
-    "URGENT: Your SBI account has been suspended. Verify your identity immediately using the link below.",
+    "URGENT: aYour SBI account has been suspended. Verify your identity immediately using the link below.",
 
     "Dear customer, your package is waiting for delivery. Pay ₹50 processing fee to release it.",
 

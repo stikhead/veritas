@@ -43,56 +43,42 @@ def _generate(prompt: str):
     return str(generated)
 
 
-def generate_explanation(
-    model_name,
-    text,
-    prediction,
-    relevancy,
-    agreement
-):
+def generate_explanation(model_name, text, prediction,relevancy, agreement):
 
-    # ==================================================
-    # EMOTION ENDPOINT
-    # ==================================================
 
     if model_name == "emotion":
 
         prompt = f"""
-You are an explainable AI assistant.
+            You are an explainable AI assistant.
 
-Input:
-{text}
+            Input:
+            {text}
 
-Sentiment Prediction:
-{prediction["sentiment"]["label"]}
-(confidence={prediction["sentiment"]["confidence"]})
+            Sentiment Prediction:
+            {prediction["sentiment"]["label"]}
+            (confidence={prediction["sentiment"]["confidence"]})
 
-7-Class Emotion Prediction:
-{prediction["emotion_7"]["label"]}
-(confidence={prediction["emotion_7"]["confidence"]})
+            7-Class Emotion Prediction:
+            {prediction["emotion_7"]["label"]}
+            (confidence={prediction["emotion_7"]["confidence"]})
 
-16-Class Emotion Prediction:
-{prediction["emotion_16"]["label"]}
-(confidence={prediction["emotion_16"]["confidence"]})
+            16-Class Emotion Prediction:
+            {prediction["emotion_16"]["label"]}
+            (confidence={prediction["emotion_16"]["confidence"]})
 
-Agreement:
-Sentiment: {agreement["sentiment"]}
-Emotion7: {agreement["emotion_7"]}
-Emotion16: {agreement["emotion_16"]}
+            Agreement:
+            Sentiment: {agreement["sentiment"]}
+            Emotion7: {agreement["emotion_7"]}
+            Emotion16: {agreement["emotion_16"]}
 
-Write a short explanation:
+            Write a short explanation:
 
-1. Overall sentiment.
-2. Dominant emotion.
-3. How the fine-grained emotion relates to the broader emotion.
-4. Keep it factual and concise.
-"""
-
+            1. Overall sentiment.
+            2. Dominant emotion.
+            3. How the fine-grained emotion relates to the broader emotion.
+            4. Keep it factual and concise.
+            """
         return _generate(prompt)
-
-    # ==================================================
-    # SINGLE MODEL ENDPOINT
-    # ==================================================
 
     examples = "\n".join(
         [
@@ -106,35 +92,35 @@ Write a short explanation:
     label_text = ", ".join(spec.labels)
 
     prompt = f"""
-You are an explainable AI assistant.
+        You are an explainable AI assistant.
 
-Use ONLY the information below.
+        Use ONLY the information below.
 
-Do NOT infer identities.
-Do NOT invent context.
+        Do NOT infer identities.
+        Do NOT invent context.
 
-Label Set:
-{label_text}
+        Label Set:
+        {label_text}
 
-Input Message:
-{text}
+        Input Message:
+        {text}
 
-Classifier Prediction:
-{prediction["label"]}
+        Classifier Prediction:
+        {prediction["label"]}
 
-Confidence:
-{prediction["confidence"]}
+        Confidence:
+        {prediction["confidence"]}
 
-Evidence Agreement:
-{agreement}
+        Evidence Agreement:
+        {agreement}
 
-Top Retrieved Examples:
-{examples}
+        Top Retrieved Examples:
+        {examples}
 
-Write 2-3 sentences explaining:
+        Write 2-3 sentences explaining:
 
-1. Why the classifier predicted this label.
-2. Whether the retrieved examples support the prediction.
-"""
+        1. Why the classifier predicted this label.
+        2. Whether the retrieved examples support the prediction.
+        """
 
     return _generate(prompt)

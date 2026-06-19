@@ -14,9 +14,6 @@ class TextRequest(BaseModel):
 app = FastAPI(title="Veritas")
 
 
-# ============================================================
-# HELPERS
-# ============================================================
 
 def get_agreement(prediction, relevancy):
 
@@ -34,11 +31,6 @@ def get_agreement(prediction, relevancy):
         prediction["label"].lower()
     )
 
-
-# ============================================================
-# ROOT
-# ============================================================
-
 @app.get("/")
 def root():
     return {
@@ -46,10 +38,6 @@ def root():
         "models": list(MODEL_REGISTRY.keys()),
     }
 
-
-# ============================================================
-# MODELS
-# ============================================================
 
 @app.get("/models")
 def get_models():

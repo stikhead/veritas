@@ -7,6 +7,8 @@ from sklearn.model_selection import train_test_split
 from datasets import Dataset, DatasetDict
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, DataCollatorWithPadding, Trainer, TrainingArguments
 
+from internal.services.relevancy import build_collection_from_dataframe
+
 curr_dir = Path.cwd()
 model_dir = curr_dir/"emotion_model_v2"
 
@@ -60,7 +62,31 @@ print("Single Label Size:", len(df))
 
 df["emotion"] = df[emotion_cols].idxmax(axis=1)
 
+# emotion_map = {
+#     "joy": "joy",
+#     "amusement": "joy",
+#     "excitement": "joy",
+#     "optimism": "joy",
+#     "love": "love",
+#     "caring": "love",
+#     "gratitude": "love",
+#     "admiration": "love",
+#     "anger": "anger",
+#     "annoyance": "anger",
+#     "disapproval": "anger",
+#     "disgust": "anger",
+#     "sadness": "sadness",
+#     "disappointment": "sadness",
+#     "grief": "sadness",
+#     "remorse": "sadness",
+#     "fear": "fear",
+#     "nervousness": "fear",
+#     "surprise": "surprise",
+#     "realization": "surprise",
+#     "confusion": "surprise",
 
+#     "neutral": "neutral"
+# }
 emotion_map = {
 
     "love": "love",
@@ -115,7 +141,7 @@ id2label = {
 df["labels"] = df["emotion"].map(label2id)
 
 df = df[["text", "labels"]]
-
+# build_collection_from_dataframe(df=df, collection_name="emotion7_relevancy",)
 print("\nClasses:")
 print(label2id)
 
@@ -148,7 +174,7 @@ else:
     tokenizer = AutoTokenizer.from_pretrained("bert-base-multilingual-cased")
     model = AutoModelForSequenceClassification.from_pretrained("bert-base-multilingual-cased", num_labels=len(label2id), id2label=id2label, label2id=label2id)
 
-model.config.id2label = id2label
+model.config.id2label =  id2label
 model.config.label2id = label2id
 
 def tokenize(example):

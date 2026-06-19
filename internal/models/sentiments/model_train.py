@@ -8,6 +8,8 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification, Data
 import numpy as np
 from pathlib import Path
 import torch
+from internal.services.relevancy import build_collection_from_dataframe
+
 print("CUDA Available:", torch.cuda.is_available())
 print("CUDA Version:", torch.version.cuda)
 print("Device Name:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None")
@@ -106,9 +108,10 @@ bad_rows = df[~df["text"].apply(lambda x: isinstance(x, str))]
 print(bad_rows.head(20))
 df = df.dropna(subset=["text"])
 print(df["text"].isna().sum())
+# build_collection_from_dataframe(df=df, collection_name="sentiment_relevancy",)
 
-# dataset = Dataset.from_pandas(df)
-# dataset = dataset.train_test_split(test_size=0.2)
+dataset = Dataset.from_pandas(df)
+dataset = dataset.train_test_split(test_size=0.2)
 
 train_df, test_df = train_test_split(
     df,

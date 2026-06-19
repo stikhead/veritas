@@ -21,32 +21,36 @@ def load_model(model_name: str):
 
     return tokenizer, model
 
-def predict(model_name: str, text: str) -> Dict[str, any]:
+def predict(model_name: str, text: str):
+
     tokenizer, model = load_model(model_name)
-    spec = MODEL_REGISTRY[model_name]
     inputs = tokenizer(
         text,
         return_tensors="pt",
         truncation=True,
-        padding=True
+        padding=True,
     )
 
-    inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
+    inputs = {
+        k: v.to(DEVICE)
+        for k, v in inputs.items()
+    }
 
     with torch.no_grad():
         outputs = model(**inputs)
 
-    probs = torch.softmax(outputs.logits, dim=-1)[0].detach().cpu().tolist()
-    pred_id = int(torch.argmax(outputs.logits, dim=-1).item())
+    probs = torch.softmax(outputs.logits,dim=-1)[0]
 
-    if len(spec.labels) == len(probs):
-        label = spec.labels[pred_id]
+    pred_id = int(torch.argmax(probs).item())
+
+    if hasattr(model.config, "id2label"):
+        label = model.config.id2label[pred_id]
     else:
-        label = str(pred_id)
+        label = MODEL_REGISTRY[model_name].labels[pred_id]
 
     probability_map = {
-        spec.labels[i] if i < len(spec.labels) else f"label_{i}": round(float(p), 4)
-        for i, p in enumerate(probs)
+        model.config.id2label[i]: round(float(p), 4)
+        for i, p in enumerate(probs.cpu().tolist())
     }
 
     return {

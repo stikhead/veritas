@@ -8,24 +8,21 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification, Data
 import numpy as np
 from pathlib import Path
 import torch
+
+# from internal.services.relevancy import build_collection_from_dataframe
 print("CUDA Available:", torch.cuda.is_available())
 print("CUDA Version:", torch.version.cuda)
 print("Device Name:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None")
 
 curr_dir = Path.cwd()
-model_dir = curr_dir/"sms_spam_model"
+model_dir = "./internal/models/sms_spam/sms_spam_model"
 
 # ==========================
 # ORIGINAL DATASET
 # ==========================
 
-org_df = pd.read_csv(
-    "spam.csv",
-    encoding="utf-8-sig"
-)
-
+org_df = pd.read_csv("./internal/models/sms_spam/spam.csv",encoding="utf-8-sig")
 org_df = org_df[["v1", "v2"]]
-
 org_df = org_df.rename(
     columns={
         "v1": "labels",
@@ -44,12 +41,7 @@ org_df["labels"] = org_df["labels"].map(
 # ADVERSARIAL DATASET
 # ==========================
 
-adversarial_df = pd.read_csv(
-    "refined_adversarial_dataset.csv"
-)
-
-# expected columns:
-# text,label
+adversarial_df = pd.read_csv("./internal/models/sms_spam/refined_adversarial_dataset.csv")
 
 adversarial_df = adversarial_df.rename(
     columns={
@@ -57,7 +49,6 @@ adversarial_df = adversarial_df.rename(
     }
 )
 
-# force integer labels
 
 adversarial_df["labels"] = (
     adversarial_df["labels"]
@@ -91,6 +82,8 @@ print(df["labels"].value_counts())
 
 print("\nRandom Samples:")
 print(df.sample(20)["text"].tolist())
+
+# build_collection_from_dataframe(df=df, collection_name="sms_relevancy",)
 # df = pd.read_csv("spam.csv", encoding="utf-8-sig")
 # df = df[["v1", "v2"]]
 # df = df.rename(columns={"v1": "labels", "v2": "text"})
@@ -104,11 +97,11 @@ print(df.sample(20)["text"].tolist())
 # print(df["text"].isna().sum())
 # bad_rows = df[~df["text"].apply(lambda x: isinstance(x, str))]
 # print(bad_rows.head(20))
-# df = df.dropna(subset=["text"])
-# print(df["text"].isna().sum())
+df = df.dropna(subset=["text"])
+print(df["text"].isna().sum())
 
-# dataset = Dataset.from_pandas(df)
-# dataset = dataset.train_test_split(test_size=0.2)
+dataset = Dataset.from_pandas(df)
+dataset = dataset.train_test_split(test_size=0.2)
 
 train_df, test_df = train_test_split(
     df,
@@ -122,10 +115,10 @@ dataset = DatasetDict({
     "test": Dataset.from_pandas(test_df)
 })
 
-if model_dir.exists():
+if Path(model_dir).exists():
     print("using existing model..........")
-    tokenizer = AutoTokenizer.from_pretrained("./sms_spam_model")
-    model = AutoModelForSequenceClassification.from_pretrained("./sms_spam_model", num_labels=2)
+    tokenizer = AutoTokenizer.from_pretrained("./internal/models/sms_spam/sms_spam_model")
+    model = AutoModelForSequenceClassification.from_pretrained("./internal/models/sms_spam/sms_spam_model", num_labels=2)
 else: 
     tokenizer = AutoTokenizer.from_pretrained("bert-base-multilingual-cased")
     model = AutoModelForSequenceClassification.from_pretrained("bert-base-multilingual-cased", num_labels=2)

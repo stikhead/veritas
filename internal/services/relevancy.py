@@ -6,6 +6,7 @@ import pandas as pd
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct,VectorParams, Distance
 from sentence_transformers import SentenceTransformer
+from collections import Counter
 
 from internal.services.model_registry import MODEL_REGISTRY
 
@@ -19,7 +20,7 @@ def get_embedding_model():
 @lru_cache(maxsize=1)
 def get_qdrant_client():
     qdrant_url = os.getenv("QDRANT_URL")
-    qdrant_path = os.getenv("QDRANT_PATH", "./internal/qdrant_database")
+    qdrant_path = os.getenv("QDRANT_PATH", "./internal/database/")
 
     if qdrant_url:
         return QdrantClient(url=qdrant_url)
@@ -38,51 +39,69 @@ def ensure_collection(collection_name: str):
             vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
         )
 
-def build_collection_from_csv(csv_path: str, collection_name: str, text_col: str = "text", label_col: str = "label"):
+def build_collection_from_dataframe(df,collection_name: str,text_col: str = "text",label_col: str = "labels"):
     client = get_qdrant_client()
     model = get_embedding_model()
 
     ensure_collection(collection_name)
 
-    df = pd.read_csv(csv_path)
-    df = df.dropna(subset=[text_col])
-    df = df.drop_duplicates(subset=[text_col])
+    df = (
+        df
+        .dropna(subset=[text_col, label_col])
+        .drop_duplicates(subset=[text_col])
+        .reset_index(drop=True)
+    )
 
-    points: List[PointStruct] = []
+    texts = df[text_col].astype(str).tolist()
 
-    for idx, row in df.iterrows():
-        text = str(row[text_col])
-        label = str(row[label_col])
+    vectors = model.encode(
+        texts,
+        batch_size=128,
+        show_progress_bar=True,
+        convert_to_numpy=True,
+    )
 
-        vector = model.encode(text).tolist()
+    points = []
 
+    for idx, (vector, row) in enumerate(
+        zip(vectors, df.itertuples(index=False))
+    ):
         points.append(
             PointStruct(
-                id=int(idx),
-                vector=vector,
+                id=idx,
+                vector=vector.tolist(),
                 payload={
-                    "text": text,
-                    "label": label,
+                    "text": getattr(row, text_col),
+                    "label": getattr(row, label_col),
                 },
             )
         )
 
-    if points:
-        client.upsert(collection_name=collection_name, points=points)
+    for i in range(0, len(points), 1000):
+        client.upsert(
+            collection_name=collection_name,
+            points=points[i:i+1000],
+        )
 
-    return {"collection": collection_name, "points": len(points)}
+    return {
+        "collection": collection_name,
+        "points": len(points),
+    }
 
 
-def search(model_name: str, text: str, top_k: int = 5) -> Dict[str, Any]:
+def search(model_name: str, text: str, top_k: int = 5):
+
     if model_name not in MODEL_REGISTRY:
         raise ValueError(f"Unknown model: {model_name}")
 
     spec = MODEL_REGISTRY[model_name]
+
     client = get_qdrant_client()
     model = get_embedding_model()
-
+    # print(spec.collection_name)
+    # print(client.get_collection(spec.collection_name))
     ensure_collection(spec.collection_name)
-
+    # print(client.count(spec.collection_name))
     query_vector = model.encode(text).tolist()
 
     results = client.query_points(
@@ -98,43 +117,43 @@ def search(model_name: str, text: str, top_k: int = 5) -> Dict[str, Any]:
             "relevant": False,
             "top_similarity": 0.0,
             "avg_similarity": 0.0,
-            "spam_neighbors": 0,
-            "ham_neighbors": 0,
+            "label_counts": {},
             "matches": [],
         }
 
     scores = [float(p.score) for p in points]
+
     top_similarity = scores[0]
     avg_similarity = sum(scores) / len(scores)
 
-    spam_neighbors = 0
-    ham_neighbors = 0
+    label_counts = Counter()
 
     matches = []
-    for hit in points:
-        payload = hit.payload or {}
-        label = str(payload.get("label", "")).lower()
-        if label == "spam":
-            spam_neighbors += 1
-        elif label == "ham":
-            ham_neighbors += 1
 
+    for hit in points:
+
+        payload = hit.payload or {}
+        label = str(payload.get("label", ""))
+        label_counts[label] += 1
         matches.append(
             {
                 "score": round(float(hit.score), 4),
-                "label": payload.get("label"),
+                "label": label,
                 "text": payload.get("text"),
             }
         )
 
-    threshold = spec.similarity_threshold or SIMILARITY_THRESHOLD_FALLBACK
-    relevant = top_similarity >= threshold and avg_similarity >= threshold
+    threshold = spec.similarity_threshold
+
+    relevant = (
+        top_similarity >= threshold
+        and avg_similarity >= threshold
+    )
 
     return {
         "relevant": relevant,
         "top_similarity": round(top_similarity, 4),
         "avg_similarity": round(avg_similarity, 4),
-        "spam_neighbors": spam_neighbors,
-        "ham_neighbors": ham_neighbors,
+        "label_counts": dict(label_counts),
         "matches": matches,
     }

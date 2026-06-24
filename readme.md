@@ -112,26 +112,30 @@ Verifies whether retrieved evidence supports the model prediction.
 A Qwen-based explanation engine generates human-readable reasoning for predictions.
 
 ---
-
 ## Architecture
 
+```text
 Client
-↓
+  │
+  ▼
 FastAPI
-↓
+  │
+  ▼
 Classifier Layer
-* Spam Model
-* Sentiment Model
-* Emotion 7 Model
-* Emotion 16 Model
-↓
+ ├── Spam Model
+ ├── Sentiment Model
+ ├── Emotion 7 Model
+ └── Emotion 16 Model
+  │
+  ▼
 Retrieval Layer
-* SentenceTransformer
-* Qdrant Vector Database
-↓
+ ├── SentenceTransformer
+ └── Qdrant Vector Database
+  │
+  ▼
 Explanation Layer
-* Qwen 2.5 Instruct
-
+ └── Qwen 2.5 Instruct
+ ```
 ---
 
 ## Tech Stack

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from 'bcrypt';
-import { v4 as uuid } from 'uuid';
+import { v4 as uuidv4  } from 'uuid';
 import jwt from 'jsonwebtoken';
 
 const userSchema = new mongoose.Schema({
@@ -25,7 +25,6 @@ const userSchema = new mongoose.Schema({
         lowercase: true,
         match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
     },
-
     password: {
         type: String,
         required: [true, " password is required"],
@@ -34,7 +33,7 @@ const userSchema = new mongoose.Schema({
         select: false
     },
 
-    isVerfied: {
+    isVerified: {
         type: Boolean,
         default: false,
         select: false
@@ -46,7 +45,7 @@ const userSchema = new mongoose.Schema({
 
     verification: {
         emailToken: {
-            type: string
+            type: String
         },
 
         emailTokenExpiry: {
@@ -54,10 +53,10 @@ const userSchema = new mongoose.Schema({
         },
 
         passwordResetToken: {
-            type: string
+            type: String
         },
 
-        passwordResetToken: {
+        passwordResetTokenExpiry: {
             type: Date
         },
 
@@ -67,28 +66,32 @@ const userSchema = new mongoose.Schema({
 
         select: false
     }
-}, {timestamp: true});
+}, {timestamps: true});
 
 
 userSchema.pre("save", async function (next){
-    if(this.isModified(password)){
+    if(this.isModified("password")){
         this.password = await bcrypt.hash(this.password, 10)
     }
 });
+
+userSchema.methods.comparePassword = async function (password){
+    return bcrypt.compare(this.password, password)
+}
 
 userSchema.methods.generateAccessToken = async function () {
     return jwt.sign({
         _id: this._id,
         username: this.userName,
         email: this.email,
-        check: this.isVerfied 
+        check: this.isVerified 
     }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.ACCESS_TOKEN_EXPIRY})
 }
 
 userSchema.methods.generateRefreshToken = async function () {
     return jwt.sign({
         _id: this._id,
-        check: this.isVerfied 
+        check: this.isVerified 
     }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: process.env.REFRESH_TOKEN_EXPIRY})
 }
-export const UserSchema = mongoose.model("User", userSchema);
+export const User = mongoose.model("User", userSchema);

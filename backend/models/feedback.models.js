@@ -4,7 +4,8 @@ const feedbackSchema = mongoose.Schema({
     prompt: {
         type: String,
         required: true,
-        default: ""
+        default: "",
+        trim: true
     },
 
     isSatisfied: {
@@ -18,7 +19,7 @@ const feedbackSchema = mongoose.Schema({
         maxlength: 50,
         minlength: 6
     }
-}, {timestamp: true});
+}, {timestamps: true})
 
-export const FeedbackSchema = mongoose.model("Feedback", feedbackSchema)
+export const Feedback = mongoose.model("Feedback", feedbackSchema)
 

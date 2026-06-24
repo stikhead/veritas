@@ -116,19 +116,19 @@ A Qwen-based explanation engine generates human-readable reasoning for predictio
 ## Architecture
 
 Client
-  ↓
+↓
 FastAPI
-  ↓
+↓
 Classifier Layer
 * Spam Model
 * Sentiment Model
 * Emotion 7 Model
 * Emotion 16 Model
-  ↓
+↓
 Retrieval Layer
 * SentenceTransformer
 * Qdrant Vector Database
-  ↓
+↓
 Explanation Layer
 * Qwen 2.5 Instruct
 
